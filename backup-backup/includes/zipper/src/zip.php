@@ -350,7 +350,7 @@ class Zip {
       // Run the backup in background
       if ((!defined('BMI_USING_CLI_FUNCTIONALITY') || BMI_USING_CLI_FUNCTIONALITY === false) && ($legacy === false || BMI_CLI_ENABLED === true) && sizeof($this->org_files) > 10 && !defined('BMI_CLI_FAILED')) {
         file_put_contents($database_file_dir . 'bmi_backup_manifest.json', $this->zip_progress->createManifest($dbBackupEngine));
-        $url = plugins_url('') . '/backup-backup/includes/backup-heart.php';
+        $url = plugins_url('') . '/backup-backup/includes/middleware-backup-proxy.php';
         $identy = 'BMI-' . rand(10000000, 99999999);
         $remote_settings = [
           'identy' => $identy,

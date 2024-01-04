@@ -3,7 +3,7 @@ Contributors: Migrate
 Tags: Migration, Backup, Staging, Migrate, Backups, Restore, All In One, Duplicate, Clone, Import, Export, Transfer
 Requires at least: 4.6
 Tested up to: 6.4.2
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv3
 Requires PHP: 5.6
 
@@ -162,6 +162,10 @@ Vietnamese: [Tạo sao lưu, khôi phục các bản sao lưu và di chuyển c�
 5. The plugin should be shown below the settings menu.
 
 == Changelog ==
+
+= 1.4.1 =
+* [FIX] Removed unwanted file that prevented our plugin from installation on Windows
+* [CHANGE] Censored table prefix in live-log
 
 = 1.4.0 =
 * [PRO] Fixed issues with dead output of Google Drive backups
@@ -698,8 +702,7 @@ Vietnamese: [Tạo sao lưu, khôi phục các bản sao lưu và di chuyển c�
 
 == Upgrade Notice ==
 
-= 1.4.0 =
-What's new in 1.4.0?
-* IMPORTANT SECURITY UPGRADE
-* [PRO] Fixed issues with dead output of Google Drive backups
-* [FIX] Improved plugin security (important upgrade – CVE-2023-6972, CVE-2023-6971, CVE-2023-7002)
+= 1.4.1 =
+What's new in 1.4.1?
+* [FIX] Removed unwanted file that prevented our plugin from installation on Windows
+* [CHANGE] Censored table prefix in live-log

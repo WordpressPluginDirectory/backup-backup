@@ -226,8 +226,7 @@
       $GLOBALS['wp_textdomain_registry'] = new \WP_Textdomain_Registry();
     }
     
-    echo $bmiPluginPathToLoadPro;
-    if (is_readable($bmiPluginPathToLoadPro)) {
+    if (file_exists($bmiPluginPathToLoadPro) && is_readable($bmiPluginPathToLoadPro)) {
       wp_register_plugin_realpath($bmiPluginPathToLoadPro);
       include_once $bmiPluginPathToLoadPro;
       

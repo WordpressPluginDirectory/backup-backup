@@ -193,8 +193,6 @@
   // Start output for server
   ob_start();
 
-  echo 'passed';
-
   // Catch anything if possible
   try {
 

@@ -736,7 +736,6 @@
     }
 
     public function readFileSensitive($file) {
-
       if (!file_exists($file)) {
         echo '';
         return;
@@ -765,6 +764,8 @@
 
     public function escapeSensitive($line, $current_directory, $scanned_directory) {
 
+      global $table_prefix;
+      
       $dir_name = basename($current_directory);
 
       $line = preg_replace('/\:\ ((.*)\.zip)/', ': *****.zip', $line);
@@ -774,6 +775,7 @@
       $line = preg_replace('/\"\d{10}\"/', '"***secret_login***"', $line);
       $line = str_replace(ABSPATH, '***ABSPATH***/', $line);
       $line = str_replace($dir_name, '***backup_path***', $line);
+      $line = str_replace($table_prefix, '***prefix***', $line);
 
       for ($i = 0; $i < sizeof($scanned_directory); ++$i) {
 
