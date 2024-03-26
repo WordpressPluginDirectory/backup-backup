@@ -2,18 +2,17 @@
 
   // Namespace
   namespace BMI\Plugin\Dashboard;
-  use BMI\Plugin\Checker\Compatibility;
 
   // Exit on direct access
   if (!defined('ABSPATH')) exit;
 
-  $debugSectionStatment = __('For more details, %s1see%s2 or %s3download%s4 the backup logs. Maybe you (or your webmaster) can fix it yourself based on those pointers?','backup-backup');
+  $debugSectionStatment = __('For more details, %s1see%s2 or %s1download%s2 the backup logs. Maybe you (or your webmaster) can fix it yourself based on those pointers? If not:','backup-backup');
   $debugSectionStatment = str_replace(
     ['%s1', '%s2', '%s3', '%s4'],
     [
-      '<a href="#" class="link open-log-modal-url">',
+      '<a href="#" id="open-log-modal" class="link">',
       '</a>',
-      '<a href="#" class="link download-backup-log-url" download="secure-backup-log.txt">',
+      '<a href="#" id="download-log" class="link">',
       '</a>',
     ],
     $debugSectionStatment
@@ -25,13 +24,11 @@
     [
       '<b>',
       '</b>',
-      '<a href="#" class="nlink secondary hoverable open-log-modal-url">',
+      '<a href="#" class="secondary hoverable" id="backup-logs-download">',
       '</a>'
     ],
     $sharingLogStatment
   );
-
-
 
 ?>
 
@@ -43,12 +40,12 @@
 
       <div class="mm60 f30 bold black mb flex flexcenter">
         <img src="<?php echo $this->get_asset('images', 'red-cross.svg'); ?>" alt="red-cross" width="78px">
-        <?php _e('Backup creation failed','backup-backup');?>
+        <div class="oll"><?php _e('Restore failed','backup-backup');?></div>
       </div>
 
       <div class="failure-options-container">
         <div class="cf lh30">
-          <div class="left mm30 f20" style="margin-bottom:20px">
+          <div class="left mm30 f16" style="margin-bottom:20px">
             <?php _e("However, no reason to despair! Your option(s):","backup-backup"); ?>
           </div>
         </div>
@@ -56,13 +53,11 @@
           <div class="collapser failure-option shadow" group="failure-option">
             <div class="header f20 pointer transition flex bold">
               <span class="right-arrow"></span>
-              <span class="option-title">
               <?php _e('Try it in a different way','backup-backup'); ?>
-              </span>
             </div>
             <div class="content save-action f18 flex mm30 pbl" >
                 <?php _e('The plugin also offers an alternative backup method. It might be a bit slower, but it’s worth trying.', 'backup-backup');?>
-              <a class="try-in-different-way mtll btn"><?php echo __('Yes sure, please try!','backup-backup');?></a>
+              <a class="mtll btn"><?php echo __('Yes sure, please try!','backup-backup');?></a>
             </div>
           </div>
 
@@ -70,19 +65,16 @@
           <div class="collapser failure-option shadow" group="failure-option">
             <div class="header f20 pointer transition flex bold">
               <span class="right-arrow"></span>
-              <span class="option-title">
               <?php _e('Debug it yourself','backup-backup'); ?>
-              </span>
             </div>
             <div class="content save-action f18 flex mm30 pbl" >
-              <span class="there-are-reasons"><?php _e('Based on what we observed, the issue could be one of those:','backup-backup');?></span>
-                <?php if (current_user_can('manage_options') && current_user_can('administrator')): ?>
-                  <ul class="failure-reasons">
-                  </ul>
-                  <?php endif; ?>
+                <?php _e('Based on what we observed, the issue could be one of those:','backup-backup');?>
+                <ul>
+                  <li><?php _e('Your server seems to have low RAM','backup-backup');?></li>
+                  <li><?php _e('(Other reason - if we have one)','backup-backup');?></li>
+                  <li><?php _e('(Other reason - if we have one)','backup-backup');?></li>
+                </ul>
                 <?php echo $debugSectionStatment ?>
-                <span class="there-are-reasons"><?php _e(' If not:','backup-backup'); ?></span>
-                <span class="there-are-no-reasons"><br><br><?php _e('If you still struggle, feel free to contact us, we will help!','backup-backup'); ?></span>
             </div>
           </div>
 
@@ -90,9 +82,7 @@
           <div class="collapser failure-option shadow" group="failure-option">
             <div class="header f20 pointer transition flex bold">
               <span class="right-arrow"></span>
-              <span class="option-title">
               <?php _e('Ask us!','backup-backup'); ?>
-              </span>
               <span class="its-free"></span>
             </div>
             <div class="content save-action f18 flex mm30 pbl" >

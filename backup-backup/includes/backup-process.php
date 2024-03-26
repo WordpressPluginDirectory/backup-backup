@@ -60,13 +60,24 @@
     public $final_batch;
     public $dbitJustFinished;
     public $lock_cli;
+    public $startOfBatch;
+    public $beatSent = false;
+    public $errorSent = false;
+    public $statusSent = false;
+    public $backupSize = 0;
     
     public $_zip;
     public $_lib;
     public $batches_left;
+    public $shutdownAlreadyInited = false;
+    public $res = [ 'status' => 'success', 'default' => true ];
 
     // Prepare the request details
     function __construct($curlIdenty = false, $config = false, $content = false, $backups = false, $abs = false, $dir = false, $remote_settings = []) {
+      
+      if (!defined('BMI_CLI_REQUEST')) {
+        define('BMI_CLI_REQUEST', false);
+      }
       
       $curl = false;
       if ($curlIdenty != false) $curl = true;
@@ -102,7 +113,7 @@
       if ($curl) {
         // Here we could use nonces, but well, WordPress can't handle nonces in such scenario due to the way its generated
         // We still use "nonce" here to bypass some security plugins as they may block the URL if the nonce string does not exist in such URL
-        $this->url = get_home_url(null, sprintf('/?backup-migration=CURL_BACKUP&backup-id=%s&_wpnonce=%s&t=%s', $this->identy, 'Wn19dnWuq', time()));
+        $this->url = get_home_url(null, sprintf('/?backup-migration=CURL_BACKUP&backup-id=%s&_wpnonce=%s&t=%s&sk=%s', $this->identy, 'Wn19dnWuq', time(), Dashboard\bmi_get_config('REQUEST:SECRET')));
       } else {
         $this->url = null;
       }
@@ -116,11 +127,18 @@
       $this->final_made = $remote_settings['final_made'];
       $this->final_batch = $remote_settings['final_batch'];
       $this->dbitJustFinished = $remote_settings['dbitJustFinished'];
+      $this->backupSize = 0;
+      if (isset($remote_settings['backupSize']))
+        $this->backupSize = $remote_settings['backupSize'];
+      
+      $this->startOfBatch = time();
+      if (isset($remote_settings['startOfBatch']))
+        $this->startOfBatch = $remote_settings['startOfBatch'];
       
       $this->lock_cli = BMI_BACKUPS . '/.backup_cli_lock';
       if ($this->it > 1) @touch($this->lock_cli);
       
-      if ($this->isFunctionEnabled('ini_set')) {
+      if ($this->isFunctionEnabled('ini_set') && $this->isFunctionEnabled('session_status') && session_status() != PHP_SESSION_ACTIVE) {
         ini_set('display_errors', 1);
         ini_set('error_reporting', E_ALL);
         ini_set('log_errors', 1);
@@ -135,7 +153,7 @@
       $settings_path = BMP::fixSlashes(BMI_TMP . DIRECTORY_SEPARATOR . $settings_name);
       
       if (!file_exists($settings_path) && $curl) {
-        Logger::error('Settings path does not exist for bypasser.php');
+        Logger::error('Settings path does not exist for backup-process.php');
         return [];
       }
       
@@ -148,12 +166,12 @@
       $remote_settings = (array) json_decode(substr($remote_settings, 8));
       
       if (!isset($remote_settings['identy'])) {
-        Logger::error('Identy is not set in the config, which prevents bypasser.php from running.');
+        Logger::error('Identy is not set in the config, which prevents backup-process.php from running.');
         return [];
       }
       
       if ($curl && $curlIdenty != $remote_settings['identy']) {
-        Logger::error('bypasser.php runs via CURL but the identy provided by CURL does not match config.');
+        Logger::error('backup-process.php runs via CURL but the identy provided by CURL does not match config.');
         return [];
       }
       
@@ -180,6 +198,8 @@
       $this->remote_settings['final_made'] = $this->final_made;
       $this->remote_settings['final_batch'] = $this->final_batch;
       $this->remote_settings['dbitJustFinished'] = $this->dbitJustFinished;
+      $this->remote_settings['startOfBatch'] = $this->startOfBatch;
+      $this->remote_settings['backupSize'] = $this->backupSize;
       
       if (file_exists($settings_path)) @unlink($settings_path);
       file_put_contents($settings_path, '<?php //' . json_encode($this->remote_settings));
@@ -194,7 +214,7 @@
       
       if ($this->isFunctionEnabled('ignore_user_abort')) @ignore_user_abort(true);
       if ($this->isFunctionEnabled('set_time_limit')) @set_time_limit(259200);
-      if ($this->isFunctionEnabled('ini_set')) {
+      if ($this->isFunctionEnabled('ini_set') && $this->isFunctionEnabled('session_status') && session_status() != PHP_SESSION_ACTIVE) {
         @ini_set('max_input_time', '259200');
         @ini_set('max_execution_time', '259200');
         @ini_set('session.gc_maxlifetime', '1200');
@@ -235,6 +255,9 @@
 
     // Create new process
     public function send_beat($manual = false, &$logger = null) {
+      
+      if ($this->beatSent) return;
+      $this->beatSent = true;
       
       if (is_null($logger)) $this->load_logger();
       else if ($logger instanceof Output) $this->output = $logger;
@@ -385,6 +408,9 @@
     // Make error
     public function send_error($reason = false, $abort = false) {
       
+      if ($this->errorSent) return;
+      $this->errorSent = true;
+      
       $this->load_logger();
 
       // Log error
@@ -401,7 +427,7 @@
       // Abort step
       $this->output->log('Aborting backup... ', 'STEP');
       if ($abort === false) $this->output->log('#002', 'END-CODE');
-      else $this->output->log('#003', 'END-CODE');
+      else $this->output->log('#004', 'END-CODE');
       if (isset($this->output)) @$this->output->end();
 
       $this->actionsAfterProcess();
@@ -453,7 +479,9 @@
         $this->output->log('Large files takes more time, you will be notified about those.', 'INFO');
 
         $folder = $this->identyFolder;
-        mkdir($folder, 0755, true);
+        if (!(file_exists($folder) && is_dir($file))) {
+          @mkdir($folder, 0755, true);
+        }
 
         $limitcrl = 96;
         if (BMI_CLI_REQUEST === true) {
@@ -590,19 +618,22 @@
 
         if ($this->db_v2_engine == true) {
 
-          return 'db_tables' . DIRECTORY_SEPARATOR . basename($file);
+          $path = 'db_tables' . DIRECTORY_SEPARATOR . basename($file);
 
         } else {
 
-          return basename($file);
+          $path = basename($file);
 
         }
 
       } else {
 
-        return basename($file);
+        $path = basename($file);
 
       }
+      
+      $path = str_replace('\\', '/', $path);
+      return $path;
 
     }
 
@@ -610,120 +641,22 @@
     public function add_files($files = [], $file_list = false, $final = false, $dbLog = false) {
 
       try {
-
-        // TODO: Remove false && or replace with option in settings to switch
-        if (false && (class_exists('\ZipArchive') || class_exists('ZipArchive'))) {
-
-          // Initialize Zip
+          
+        $zipArchive = false;
+        if (class_exists('\ZipArchive') || class_exists('ZipArchive')) {
           if (!isset($this->_zip)) {
             $this->_zip = new \ZipArchive();
           }
 
           if ($this->_zip) {
-
-            // Show what's in use
-            if ($this->it === 1) {
-              $this->output->log('Using ZipArchive module to create the Archive.', 'INFO');
-              if ($dbLog == true) {
-                $this->output->log('Adding database SQL file(s) to the backup file.', 'STEP');
-              }
-            }
-
-            // Open / create ZIP file
-            $back = BMI_BACKUPS . DIRECTORY_SEPARATOR . $this->backupname;
-            if (BMI_CLI_REQUEST) {
-              if (!isset($this->zip_initialized)) {
-                if (file_exists($back)) $this->_zip->open($back);
-                else $this->_zip->open($back, \ZipArchive::CREATE);
-              }
-            } else {
-              if (file_exists($back)) $this->_zip->open($back);
-              else $this->_zip->open($back, \ZipArchive::CREATE);
-            }
-
-            // Final operation
-            if ($final || $dbLog) {
-
-              // Add files
-              for ($i = 0; $i < sizeof($files); ++$i) {
-
-                if (file_exists($files[$i]) && is_readable($files[$i]) && !is_link($files[$i])) {
-
-                  // Add the file
-                  $this->_zip->addFile($files[$i], $this->cutDir($files[$i]));
-
-                } else {
-
-                  $this->output->log('This file is not readable, it will not be included in the backup: ' . $files[$i], 'WARN');
-
-                }
-
-              }
-
-              if ($dbLog === false) {
-                $this->final_made = true;
-              }
-
-            } else {
-              
-              $_abspath = ABSPATH;
-              if (strpos($_abspath, 'file://') !== false) $_abspath = substr(ABSPATH, 7);
-
-              // Add files
-              for ($i = 0; $i < sizeof($files); ++$i) {
-
-                if (file_exists($files[$i]) && is_readable($files[$i]) && !is_link($files[$i])) {
-
-                  // Calculate Path in ZIP
-                  $path = 'wordpress' . DIRECTORY_SEPARATOR . substr($files[$i], strlen($_abspath));
-
-                  // Add the file
-                  $this->_zip->addFile($files[$i], $path);
-
-                } else {
-
-                  $this->output->log('This file is not readable, it will not be included in the backup: ' . $files[$i], 'WARN');
-
-                }
-
-              }
-
-            }
-
-            // Close archive and prepare next batch
-            touch(BMI_BACKUPS . '/.running');
-            if (!BMI_CLI_REQUEST || $final) {
-              $result = $this->_zip->close();
-
-              if ($result === true) {
-
-                // Remove batch
-                if ($file_list && file_exists($file_list)) {
-                  $this->unlinksafe($file_list);
-                }
-
-              } else {
-
-                $this->send_error('Error, there is most likely not enough space for the backup.');
-                return false;
-
-              }
-            } else {
-
-              // Remove batch
-              if ($file_list && file_exists($file_list)) {
-                $this->unlinksafe($file_list);
-              }
-
-            }
-
+            $zipArchive = true;
           } else {
-            $this->send_error('ZipArchive error, please contact support - your site may be special case.');
+            $zipArchive = false;
           }
+        }
 
-        } else {
-
-          // Check if PclZip exists
+        // Check if PclZip exists
+        if ($zipArchive === false) {
           if (!class_exists('PclZip')) {
             if (!defined('PCLZIP_TEMPORARY_DIR')) {
               $bmi_tmp_dir = BMI_TMP;
@@ -733,22 +666,26 @@
 
               define('PCLZIP_TEMPORARY_DIR', $bmi_tmp_dir . DIRECTORY_SEPARATOR . 'bmi-');
             }
+            
+            if (!defined('PCLZIP_READ_BLOCK_SIZE')) {
+              define('PCLZIP_READ_BLOCK_SIZE', 32768);
+            }
           }
 
           // Require the LIB and check if it's compatible
           $alternative = dirname($this->dir) . '/backup-backup-pro/includes/pcl.php';
-          if ($this->rev === 1 || !file_exists($alternative)) {
+          if ($this->rev === 2 || !file_exists($alternative)) {
             require_once ABSPATH . 'wp-admin/includes/class-pclzip.php';
           } else {
             require_once $alternative;
             if ($this->it === 1) {
-              $this->output->log('Using dedicated PclZIP for Pro', 'INFO');
+              $this->output->log('Using dedicated PclZIP for Premium Users.', 'INFO');
               if ($dbLog == true) {
                 $this->output->log('Adding database SQL file(s) to the backup file.', 'STEP');
               }
             }
           }
-
+          
           // Get/Create the Archive
           if (!isset($this->_lib)) {
             $this->_lib = new \PclZip(BMI_BACKUPS . DIRECTORY_SEPARATOR . $this->backupname);
@@ -758,39 +695,87 @@
             $this->send_error('PHP-ZIP: Permission Denied or zlib cannot be found');
             return;
           }
-
-          if (sizeof($files) <= 0) {
-            return false;
+          
+        } else {
+          
+          $backupPath = BMI_BACKUPS . DIRECTORY_SEPARATOR . $this->backupname;
+          if (BMI_CLI_REQUEST) {
+            if (!isset($this->zip_initialized)) {
+              if (file_exists($backupPath)) $this->_zip->open($backupPath);
+              else $this->_zip->open($backupPath, \ZipArchive::CREATE);
+            }
+          } else {
+            if (file_exists($backupPath)) $this->_zip->open($backupPath);
+            else $this->_zip->open($backupPath, \ZipArchive::CREATE);
           }
           
-          $back = 0;
-          $files = array_filter($files, function ($path) {
-            if (is_readable($path) && file_exists($path) && !is_link($path)) return true;
-            else {
-              $this->output->log("Excluding file that cannot be read: " . $path, 'warn');
-              return false;
+          if ($this->it === 1) {
+            $this->output->log('Using ZipArchive extension for this backup process.', 'INFO');
+            if ($dbLog == true) {
+              $this->output->log('Adding database SQL file(s) to the backup file.', 'STEP');
             }
-          });
+          }
+          
+        }
 
-          $_abspath = ABSPATH;
-          $_bmi_tmp = BMI_TMP;
-          if (strpos($_abspath, 'file://') !== false) $_abspath = substr($_abspath, 7);
-          if (strpos($_bmi_tmp, 'file://') !== false) $_bmi_tmp = substr($_bmi_tmp, 7);
+        if (sizeof($files) <= 0) {
+          return false;
+        }
+        
+        $back = 0;
+        $files = array_filter($files, function ($path) {
+          if (is_readable($path) && file_exists($path) && !is_link($path)) return true;
+          else {
+            $this->output->log("Excluding file that cannot be read: " . $path, 'warn');
+            return false;
+          }
+        });
 
-          // Add files
-          if ($final || $dbLog) {
+        $_abspath = ABSPATH;
+        $_bmi_tmp = BMI_TMP;
+        if (strpos($_abspath, 'file://') !== false) $_abspath = substr($_abspath, 7);
+        if (strpos($_bmi_tmp, 'file://') !== false) $_bmi_tmp = substr($_bmi_tmp, 7);
 
+        // Add files
+        if ($final || $dbLog) {
+          
+          if ($zipArchive) {
+            for ($i = 0; $i < sizeof($files); ++$i) {
+              
+              // Add the file
+              $this->_zip->addFile($files[$i], $this->cutDir($files[$i]));
+              
+            }
+          } else { 
+            
             // Final configuration
             if (sizeof($files) > 0) {
               $back = $this->_lib->add($files, PCLZIP_OPT_REMOVE_PATH, $_bmi_tmp . DIRECTORY_SEPARATOR, PCLZIP_OPT_ADD_TEMP_FILE_ON, PCLZIP_OPT_TEMP_FILE_THRESHOLD, $this->safelimit);
             }
             
-            if ($dbLog === false) {
-              $this->final_made = true;
+          }
+          
+          if ($dbLog === false) {
+            $this->final_made = true;
+          }
+
+        } else {
+          
+          if ($zipArchive) {
+            
+            for ($i = 0; $i < sizeof($files); ++$i) {
+              
+              $path = 'wordpress' . DIRECTORY_SEPARATOR . substr($files[$i], strlen($_abspath));
+              
+              $path = str_replace('\\', '/', $path);
+              
+              // Add the file
+              $this->_zip->addFile($files[$i], $path);
+              
             }
-
+            
           } else {
-
+            
             // Additional path
             $add_path = 'wordpress' . DIRECTORY_SEPARATOR;
 
@@ -798,11 +783,40 @@
             if (sizeof($files) > 0) {
               $back = $this->_lib->add($files, PCLZIP_OPT_REMOVE_PATH, $_abspath, PCLZIP_OPT_ADD_PATH, $add_path, PCLZIP_OPT_ADD_TEMP_FILE_ON, PCLZIP_OPT_TEMP_FILE_THRESHOLD, $this->safelimit);
             }
-
+            
           }
 
-          // Check if there was any error
-          touch(BMI_BACKUPS . '/.running');
+        }
+
+        // Check if there was any error
+        touch(BMI_BACKUPS . '/.running');
+        if ($zipArchive) {
+          if (!BMI_CLI_REQUEST || $final) {
+            $result = $this->_zip->close();
+
+            if ($result === true) {
+
+              // Remove batch
+              if ($file_list && file_exists($file_list)) {
+                $this->unlinksafe($file_list);
+              }
+
+            } else {
+
+              $this->send_error('Error, there is most likely not enough space for the backup.');
+              return false;
+
+            }
+          } else {
+
+            // Remove batch
+            if ($file_list && file_exists($file_list)) {
+              $this->unlinksafe($file_list);
+            }
+
+          }
+        } else {
+            
           if ($back == 0) {
 
             $this->send_error($this->_lib->errorInfo(true));
@@ -815,7 +829,7 @@
             }
 
           }
-
+          
         }
 
       } catch (\Exception $e) {
@@ -930,8 +944,17 @@
       $this->add_files($parsed_files, $list_file);
       $this->filessofar += sizeof($parsed_files);
 
+      $currentBackupSize = filesize(BMI_BACKUPS . DIRECTORY_SEPARATOR . $this->backupname);
       $this->output->progress($this->filessofar . '/' . $this->total_files);
       $this->output->log('Milestone: ' . $this->filessofar . '/' . $this->total_files . ' [' . $this->batches_left . ' batches left]', 'SUCCESS');
+      $this->output->log('Backup file size: ' . $this->humanSize($currentBackupSize), 'VERBOSE');
+      $this->output->log('Time since last batch: ' . (time() - $this->startOfBatch) . ' seconds.', 'VERBOSE');
+      $this->startOfBatch = time();
+      
+      if ($this->backupSize > $currentBackupSize)
+        return $this->send_error('Backup size is smaller than it should be, it has been damaged, it may not be restorable, abort recommended.', true);
+      
+      $this->backupSize = $currentBackupSize;
 
       if ($this->final_batch === true) {
         $this->output->log('Adding final files to this batch...', 'STEP');
@@ -947,6 +970,9 @@
 
     // Shutdown callback
     public function shutdown() {
+      
+      if ($this->shutdownAlreadyInited) return;
+      $this->shutdownAlreadyInited = true;
 
       // Check if there was any error
       $err = error_get_last();
@@ -957,12 +983,16 @@
       }
 
       // Remove lock
-      if (file_exists($this->lock_cli)) {
+      if (BMI_CLI_REQUEST && $this->lock_cli && file_exists($this->lock_cli)) {
         $this->unlinksafe($this->lock_cli);
       }
 
       // Send next beat to handle next batch
-      if (BMI_CLI_REQUEST) return;
+      if (BMI_CLI_REQUEST) {
+        $this->res = [ 'status' => 'success' ];
+        return true; 
+      }
+      
       if (file_exists($this->identyfile)) {
 
         // Set header for browser
@@ -979,6 +1009,11 @@
 
         }
 
+      } else {
+        if (!$this->statusSent) {
+          $this->statusSent = true;
+          return BMP::res([ 'status' => 'success' ]);
+        }
       }
 
     }
@@ -990,7 +1025,17 @@
         'backup_process_error' => (($error == true) ? 'true' : 'false')
       ];
       
-      return BMP::res($res);
+      if ($error == true)
+        $res['status'] = 'error';
+      
+      $this->res = $res;
+      
+      if (!$this->statusSent) {
+        $this->statusSent = true;
+        BMP::res($res);
+      }
+      
+      return $res;
     }
 
     // Handle received batch
@@ -999,12 +1044,14 @@
       // Check if aborted
       if (file_exists(BMI_BACKUPS . '/.abort')) {
         if (!isset($this->output)) $this->load_logger();
+        $this->res = [ 'status' => 'error' ];
         $this->send_error('Backup aborted manually by user.', true);
         return;
       }
 
       // Check if it was triggered by verified user
       if (!file_exists($this->identyfile)) {
+        $this->res = [ 'status' => 'error' ];
         return;
       }
 
@@ -1023,7 +1070,10 @@
         $this->output->log('Bypasser error:', 'ERROR');
         $this->output->log($errno . ' - ' . $errstr, 'ERROR');
         $this->output->log($errfile . ' - ' . $errline, 'ERROR');
-      }, E_ALL);
+        
+        $this->res = [ 'status' => 'error' ];
+        return;
+      }, E_ERROR);
 
       // Notice parent script
       touch($this->identyfile . '-running');
@@ -1063,6 +1113,7 @@
           }
 
           $this->databaseBackupMaker();
+          return $this->res;
 
         } else {
 
@@ -1120,7 +1171,10 @@
     // We need WP instance for that to get access to wpdb
     public function databaseBackupMaker() {
 
-      if ($this->dbit === -1) return;
+      if ($this->dbit === -1) {
+        $this->res = [ 'status' => 'error' ];
+        return;
+      }
 
       // DB File Name for that type of backup
       $dbbackupname = 'bmi_database_backup.sql';
@@ -1144,6 +1198,8 @@
 
           $this->dbitJustFinished = true;
           $this->dbit = -1;
+          
+          $this->res = [ 'status' => 'success' ];
           return true;
 
         } else {
@@ -1198,6 +1254,7 @@
 
           }
 
+          $this->res = [ 'status' => 'success' ];
           return true;
 
         }
@@ -1207,6 +1264,8 @@
         $this->output->log('Database will not be dumped due to user settings.', 'INFO');
         $this->dbitJustFinished = true;
         $this->dbit = -1;
+        
+        $this->res = [ 'status' => 'success' ];
         return true;
 
       }
@@ -1215,11 +1274,15 @@
 
     public function actionsAfterProcess($success = false) {
       
-      Logger::log("Backup file created successfully via bypasser.php");
+      Logger::log("Backup file created successfully via backup-process.php");
       BMP::handle_after_cron();
       
       return null;
 
+    }
+    
+    public function __destruct() {
+      $this->shutdown();
     }
 
   }
