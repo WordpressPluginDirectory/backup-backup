@@ -3,7 +3,7 @@ Contributors: Migrate
 Tags: Migration, Backup, Staging, Migrate, Backups
 Requires at least: 4.6
 Tested up to: 6.5
-Stable tag: 1.4.4
+Stable tag: 1.4.5
 License: GPLv3
 Requires PHP: 5.6
 
@@ -163,6 +163,12 @@ Vietnamese: [Tạo sao lưu, khôi phục các bản sao lưu và di chuyển c�
 
 == Changelog ==
 
+= 1.4.5 =
+* [FIX] Resolved issues with cURL backup method and false positive errors
+* [FIX] Fixed issues with small size backups (<=~10MB)
+* [FIX] Prevented errors during space check
+* [FIX] Fixed issues with database backup
+
 = 1.4.4 =
 * [NEW] Added "error translator" which tells the user what went wrong based on the live log - it will be extended during time
 * [NEW] Added size checks, if the batch decreased the ZIP size it will consider it as damaged and return error
@@ -225,8 +231,12 @@ Old changelog has been removed due to WordPress limitation of 5000 characters.
 
 == Upgrade Notice ==
 
-= 1.4.4 =
-What's new in 1.4.4?
+= 1.4.5 =
+What's new in 1.4.5?
+* [FIX] Resolved issues with cURL backup method and false positive errors
+* [FIX] Fixed issues with small size backups (<=~10MB)
+* [FIX] Prevented errors during space check
+* [FIX] Fixed issues with database backup
 * [NEW] Added "error translator" which tells the user what went wrong based on the live log - it will be extended during time
 * [NEW] Added size checks, if the batch decreased the ZIP size it will consider it as damaged and return error
 * [NEW] Backups list will now load until it can process all backups (for sites with low max execution time)
