@@ -11,25 +11,24 @@
   $downloadLogNote = str_replace(
     ['%s1' , '%s2'],
     [
-      '<a href="#" class="link download-backup-log-url" download="secure-backup-log.txt">',
+      '<a href="#" class="link download-log-url censored" download="">',
       '</a>'
     ],
     $downloadLogNote
     );
 ?>
 
-<div class="bmi-modal bmi-modal-no-close" id="backup-logs-modal"> 
+<div class="bmi-modal bmi-modal-no-close" id="logs-modal">
   <div class="bmi-modal-wrapper no-hpad" style="max-width: 780px; max-width: min(780px, 80vw); padding-top: 25px;">
     <span class="bmi-modal-back">
     </span>
     <a href="#" class="bmi-modal-close">×</a>
     <div class="bmi-modal-content center">
 
-        <div class="f26 bold black title">
-          <?php _e('Backup logs', 'backup-backup') ?>
+        <div class="f26 bold black modal-title">
         </div>
         <div class="f16 align-right">
-          <a href="#" class="nlink hoverable download-backup-log-url uncensored" download="backup-logs.txt">
+          <a href="#" class="nlink hoverable download-log-url uncensored" download=""> 
             <?php _e('Download logs', 'backup-backup') ?>
           </a>
         </div>
