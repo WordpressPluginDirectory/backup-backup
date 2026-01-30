@@ -5,7 +5,7 @@
 
   // Usage
   use BMI\Plugin\BMI_Logger AS Logger;
-  use BMI\Plugin\Progress\BMI_ZipProgress AS Output;
+  use BMI\Plugin\Progress\BMI_ZipProgress_Logger AS Output;
   use BMI\Plugin\Checker\System_Info as SI;
   use BMI\Plugin\Dashboard as Dashboard;
   use BMI\Plugin\Database\BMI_Database as Database;
@@ -61,7 +61,6 @@
     public $dbitJustFinished;
     public $lock_cli;
     public $startOfBatch;
-    public $beatSent = false;
     public $errorSent = false;
     public $statusSent = false;
     public $backupSize = 0;
@@ -69,7 +68,6 @@
     public $_zip;
     public $_lib;
     public $batches_left;
-    public $shutdownAlreadyInited = false;
     public $res = [ 'status' => 'success', 'default' => true ];
 
     // Prepare the request details
@@ -113,7 +111,7 @@
       if ($curl) {
         // Here we could use nonces, but well, WordPress can't handle nonces in such scenario due to the way its generated
         // We still use "nonce" here to bypass some security plugins as they may block the URL if the nonce string does not exist in such URL
-        $this->url = get_home_url(null, sprintf('/?backup-migration=CURL_BACKUP&backup-id=%s&_wpnonce=%s&t=%s&sk=%s', $this->identy, 'Wn19dnWuq', time(), Dashboard\bmi_get_config('REQUEST:SECRET')));
+        $this->url = get_home_url(null, sprintf('/?backup-migration=CURL_BACKUP&bmi-id=%s&_wpnonce=%s&t=%s&sk=%s', $this->identy, 'Wn19dnWuq', time(), Dashboard\bmi_get_config('REQUEST:SECRET')));
       } else {
         $this->url = null;
       }
@@ -255,11 +253,32 @@
     // Create new process
     public function send_beat($manual = false, &$logger = null) {
       
-      if ($this->beatSent) return;
-      $this->beatSent = true;
+      $globalLockFile = BMI_TMP . DIRECTORY_SEPARATOR . '.beat_lock_' . $this->identy;
+      $maxLockAge = 10;
       
       if (is_null($logger)) $this->load_logger();
       else if ($logger instanceof Output) $this->output = $logger;
+      
+      if (file_exists($globalLockFile)) {
+        $lockAge = time() - filemtime($globalLockFile);
+        if ($lockAge < $maxLockAge) {
+          sleep($maxLockAge - $lockAge + 1);
+          @unlink($globalLockFile);
+        } else {
+          @unlink($globalLockFile);
+        }
+      }
+      
+      $fp = fopen($globalLockFile, 'c');
+      if (!$fp) {
+        $this->output->log('Could not open lock file for writing, skipping this beat.', 'WARN');
+        return;
+      }
+      if (!flock($fp, LOCK_EX | LOCK_NB)) {
+        $this->output->log('Another process is already running, skipping this beat.', 'WARN');
+        fclose($fp);
+        return;
+      }
       
       try {
 
@@ -288,9 +307,16 @@
 
         $r = curl_exec($c);
 
+        $statusCode = curl_getinfo($c, CURLINFO_HTTP_CODE);
+        if ($statusCode > 299) {
+          Logger::error(print_r(curl_getinfo($c), true));
+          $this->output->log('Response: ' . $r, 'ERROR');
+          $this->send_error('There was something wrong with the request, the response code was: ' . $statusCode, true);
+        }
+
         if ($manual === true && $logger !== null) {
           if ($r === false) {
-            if (intval(curl_errno($c)) !== 28) {
+            if (intval(curl_errno($c)) === CURLE_OPERATION_TIMEDOUT || $statusCode === 429) {
               Logger::error(print_r(curl_getinfo($c), true));
               Logger::error(curl_errno($c) . ': ' . curl_error($c));
               $this->output->log('There was something wrong with the request:', 'WARN');
@@ -316,6 +342,10 @@
         $this->output->log($e->getMessage(), 'ERROR');
         if (isset($this->output)) $this->output->end();
 
+      } finally {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        @unlink($globalLockFile);
       }
 
     }
@@ -355,6 +385,7 @@
 
       // Remove backup
       if (file_exists(BMI_BACKUPS . '/.running')) $this->unlinksafe(BMI_BACKUPS . '/.running');
+      if (file_exists(BMI_BACKUPS . '/.space_check')) $this->unlinksafe(BMI_BACKUPS . '/.space_check');
       if (file_exists(BMI_BACKUPS . '/.abort')) $this->unlinksafe(BMI_BACKUPS . '/.abort');
       if (file_exists(BMI_BACKUPS . '/.last_triggered')) $this->unlinksafe(BMI_BACKUPS . '/.last_triggered');
 
@@ -733,8 +764,15 @@
 
         $_abspath = ABSPATH;
         $_bmi_tmp = BMI_TMP;
+        $_wp_content = WP_CONTENT_DIR;
         if (strpos($_abspath, 'file://') !== false) $_abspath = substr($_abspath, 7);
         if (strpos($_bmi_tmp, 'file://') !== false) $_bmi_tmp = substr($_bmi_tmp, 7);
+        if (strpos($_wp_content, 'file://') !== false) $_wp_content = substr($_wp_content, 7);
+
+        $needManipulation = false;
+        if ( strpos($_wp_content, $_abspath) === false ) {
+          $needManipulation = true;
+        }
 
         // Add files
         if ($final || $dbLog) {
@@ -768,10 +806,18 @@
           if ($zipArchive) {
             
             for ($i = 0; $i < sizeof($files); ++$i) {
+
+              if ($needManipulation) {
+                if (strpos($files[$i], $_wp_content) !== false) {
+                  $path = 'wordpress' . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . substr($files[$i], strlen($_wp_content));
+                } else {
+                  $path = 'wordpress' . DIRECTORY_SEPARATOR . substr($files[$i], strlen($_abspath));
+                }
+              } else {
+                $path = 'wordpress' . DIRECTORY_SEPARATOR . substr($files[$i], strlen($_abspath));
+              }
               
-              $path = 'wordpress' . DIRECTORY_SEPARATOR . substr($files[$i], strlen($_abspath));
-              
-              $path = str_replace('\\', '/', $path);
+              $path = BMP::fixSlashes($path);
               
               // Add the file
               if (is_dir($files[$i])) {
@@ -783,13 +829,24 @@
             }
             
           } else {
-            
-            // Additional path
-            $add_path = 'wordpress' . DIRECTORY_SEPARATOR;
 
-            // Casual configuration
-            if (sizeof($files) > 0) {
-              $back = $this->_lib->add($files, PCLZIP_OPT_REMOVE_PATH, $_abspath, PCLZIP_OPT_ADD_PATH, $add_path, PCLZIP_OPT_ADD_TEMP_FILE_ON, PCLZIP_OPT_TEMP_FILE_THRESHOLD, $this->safelimit);
+            if ($needManipulation) {
+              $coreFiles = [];
+              $contentFiles = [];
+              foreach ($files as $file) {
+                if (strpos($file, $_wp_content) !== false) {
+                  $contentFiles[] = $file;
+                } else {
+                  $coreFiles[] = $file;
+                }
+              }
+              
+              $back_1 = $this->_lib->add($coreFiles, PCLZIP_OPT_REMOVE_PATH, $_abspath, PCLZIP_OPT_ADD_PATH, 'wordpress' . DIRECTORY_SEPARATOR, PCLZIP_OPT_ADD_TEMP_FILE_ON, PCLZIP_OPT_TEMP_FILE_THRESHOLD, $this->safelimit);
+              $back_2 = $this->_lib->add($contentFiles, PCLZIP_OPT_REMOVE_PATH, $_wp_content, PCLZIP_OPT_ADD_PATH, 'wordpress' . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR, PCLZIP_OPT_ADD_TEMP_FILE_ON, PCLZIP_OPT_TEMP_FILE_THRESHOLD, $this->safelimit);
+              $back = $back_1 && $back_2;
+              
+            } else {
+              $back = $this->_lib->add($files, PCLZIP_OPT_REMOVE_PATH, $_abspath, PCLZIP_OPT_ADD_PATH, 'wordpress' . DIRECTORY_SEPARATOR, PCLZIP_OPT_ADD_TEMP_FILE_ON, PCLZIP_OPT_TEMP_FILE_THRESHOLD, $this->safelimit);
             }
             
           }
@@ -810,6 +867,7 @@
               }
 
             } else {
+              $this->output->log('not_enough_space', 'verbose');
 
               $this->send_error('Error, there is most likely not enough space for the backup.');
               return false;
@@ -978,9 +1036,6 @@
 
     // Shutdown callback
     public function shutdown() {
-      
-      if ($this->shutdownAlreadyInited) return;
-      $this->shutdownAlreadyInited = true;
 
       // Check if there was any error
       $err = error_get_last();
@@ -1187,8 +1242,8 @@
       // DB File Name for that type of backup
       $dbbackupname = 'bmi_database_backup.sql';
       $database_file = $this->fixSlashes(BMI_TMP . DIRECTORY_SEPARATOR . $dbbackupname);
-
-      if (Dashboard\bmi_get_config('BACKUP:DATABASE') == 'true') {
+      $shouldBackupDB = apply_filters('bmip_database_backup', Dashboard\bmi_get_config('BACKUP:DATABASE') == 'true');
+      if ( $shouldBackupDB ) {
 
         if (Dashboard\bmi_get_config('OTHER:BACKUP:DB:SINGLE:FILE') == 'true') {
 
@@ -1281,20 +1336,20 @@
     }
 
     public function actionsAfterProcess($success = false) {
+      if ($success == true) {
+        Logger::log("Backup file created successfully via backup-process.php");
+        BMP::handle_after_cron();
+      } else {
+        Logger::log("Backup file creation failed via backup-process.php");
+      }
       
-      Logger::log("Backup file created successfully via backup-process.php");
-      BMP::handle_after_cron();
-      
-      if (has_action('bmi_premium_after_process')){
-        do_action('bmi_premium_after_process', $success, 'backup');
+      if (has_action('bmi_premium_after_process') || (defined('BACKUP_TRIGGERED_BY_URL') && BACKUP_TRIGGERED_BY_URL === true)){
+        do_action('bmi_premium_after_process', $success, 'backup', defined('BACKUP_TRIGGERED_BY_URL') && BACKUP_TRIGGERED_BY_URL === true);
       }    
       
       return null;
 
     }
     
-    public function __destruct() {
-      $this->shutdown();
-    }
 
   }

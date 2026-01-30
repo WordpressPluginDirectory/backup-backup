@@ -39,7 +39,6 @@
 
   <!-- Translations for JS -->
   <?php require_once 'translations.php'; ?>
-
   <!-- Plugin Title -->
   <div class="heading f30 semibold">
     Backup Migration <small class="regular f20">by <a href="https://backupbliss.com" class="secondary" target="_blank">BackupBliss</a></small>
@@ -48,23 +47,28 @@
   <!-- TABS -->
   <div class="bmi-tabs cf shadow rbb">
     <div class="bmi-tab left semibold f22 active pointer transition" data-point="create-backup-wrapper">
-      <?php _e('Create backup(s)', 'backup-backup') ?>
+      <?php esc_html_e('Create backup(s)', 'backup-backup') ?>
     </div>
     <div id="stgng" class="bmi-tab left semibold f22 pointer transition" data-point="staging-sites-wrapper">
       <span class="bmi-stg-wrap">
-        <?php _e('Create a staging site', 'backup-backup') ?>
+        <?php esc_html_e('Create a staging site', 'backup-backup') ?>
         <span id="bmi-stg-new"></span>
         <i>NEW</i>
       </span>
     </div>
     <div id="marbs" class="bmi-tab left semibold f22 pointer transition" data-point="manage-restore-wrapper">
-      <?php _e('Manage & Restore Backup(s)', 'backup-backup') ?>
+      <?php esc_html_e('Manage & Restore Backup(s)', 'backup-backup') ?>
     </div>
   </div>
 
   <!-- Error handling -->
   <?php require_once 'modules/email-errors.php'; ?>
+  <?php require_once 'modules/security-plugins-warning.php'; ?>
   <?php require_once 'modules/quota-errors.php'; ?>
+  <?php has_action('bmi_premium_errors') ? do_action('bmi_premium_errors') : ''; ?>
+  <?php has_action('bmi_external_errors') ? do_action('bmi_external_errors') : ''; ?>
+  <?php require_once 'modules/before-update-backup-errors.php'; ?>
+  <?php require_once 'modules/plugins-auto-update-notice.php'; ?>
 
   <!-- @@TAB@@ Create backups(s) -->
   <div class="bmi-tab-wrapper" id="create-backup-wrapper">
@@ -75,11 +79,11 @@
     <!-- CONFIGURATION HEADER -->
     <div class="cf section-bmi lh30">
       <div class="left f20">
-        <?php _e('Configuration options', 'backup-backup') ?>
+        <?php esc_html_e('Configuration options', 'backup-backup') ?>
       </div>
-      <div class="right f18 secondary premium-wrapper" tooltip="<?php echo $configu_sets; ?>">
+      <div class="right f18 secondary premium-wrapper" tooltip="<?php echo esc_attr( $configu_sets ); ?>">
         <div class="premium premium-img">
-          <?php _e('+ Add / manage configuration set(s)​', 'backup-backup') ?>
+          <?php esc_html_e('+ Add / manage configuration set(s)​', 'backup-backup') ?>
         </div>
       </div>
     </div>
@@ -87,7 +91,7 @@
     <!-- CONFIGURATION SECTION 1 -->
     <div class="collapser section-bmi shadow" id="exlucde-parts" group="configuration">
       <div class="header f20 pointer transition">
-        <span class="bold"><?php _e('What', 'backup-backup') ?></span> <?php _e('will be backed up?​', 'backup-backup') ?>
+        <span class="bold"><?php esc_html_e('What', 'backup-backup') ?></span> <?php esc_html_e('will be backed up?​', 'backup-backup') ?>
       </div>
       <div class="content save-action f20" data-save="save-file-config">
 
@@ -99,7 +103,7 @@
     <!-- CONFIGURATION SECTION 2 -->
     <div class="collapser section-bmi shadow" id="storage-options" group="configuration">
       <div class="header f20 pointer transition" id="bmi-external-storage-options">
-        <span class="bold"><?php _e('Where', 'backup-backup') ?></span> <?php _e('shall the backup(s) be stored?', 'backup-backup') ?>
+        <span class="bold"><?php esc_html_e('Where', 'backup-backup') ?></span> <?php esc_html_e('shall the backup(s) be stored?', 'backup-backup') ?>
       </div>
       <div class="content save-action" data-save="save-storage">
 
@@ -111,7 +115,7 @@
     <!-- CONFIGURATION SECTION 3 -->
     <div class="collapser section-bmi shadow" group="configuration">
       <div class="header f20 pointer transition">
-        <span class="bold"><?php _e('How', 'backup-backup') ?></span> <?php _e('shall the backup(s) be stored?', 'backup-backup') ?>
+        <span class="bold"><?php esc_html_e('How', 'backup-backup') ?></span> <?php esc_html_e('should the backup(s) be stored?', 'backup-backup') ?>
       </div>
       <div class="content save-action" data-save="store-config">
 
@@ -125,7 +129,7 @@
 
     <!-- GLOBAL CONFIGURATION -->
     <div class="collapser section-bmi shadow" id="other-options" group="configuration">
-      <div class="header f20 pointer transition"><span class="bold"><?php _e('Other options', 'backup-backup') ?></span></div>
+      <div class="header f20 pointer transition"><span class="bold"><?php esc_html_e('Other options', 'backup-backup') ?></span></div>
       <div class="content save-action" data-save="save-other-options">
 
         <?php require_once 'chapter/other_config.php'; ?>
@@ -135,7 +139,7 @@
 
     <!-- TROUBLESHOOTING -->
     <div class="collapser section-bmi shadow" id="troubleshooting-chapter" group="configuration">
-      <div class="header f20 pointer transition"><span class="bold"><?php _e('Troubleshooting', 'backup-backup') ?></span></div>
+      <div class="header f20 pointer transition"><span class="bold"><?php esc_html_e('Troubleshooting', 'backup-backup') ?></span></div>
       <div class="content">
 
         <?php require_once 'chapter/troubleshooting.php'; ?>
@@ -159,7 +163,12 @@
     <?php require_once 'modules/super-quick-migration.php'; ?>
 
     <div class="restore-wrapper shadow fullwidth rbb rbt">
-      <div class="f22 regular m mbl"><?php _e("Your saved backups:", 'backup-backup'); ?></div>
+      <div class="space-between">
+        <div class="f22 regular m mbl"><?php esc_html_e("Your saved backups:", 'backup-backup'); ?></div>
+        <div class="m bmi-search-container">
+          <input type="text" id="bmi_backup_search_input" class="bmi-text-input" placeholder="<?php esc_attr_e('Search backups...', 'backup-backup'); ?>"/>
+        </div>
+      </div>
 
       <!-- Super Quick Migration -->
       <div class="quick-migration m">
@@ -195,9 +204,9 @@
                 <?php require_once 'modules/backups-table-header.php'; ?>
 
               </thead>
-              <tbody id="bmi_restore_tbody" data-empty="<?php _e('You have not created any backups yet.', 'backup-backup'); ?>">
+              <tbody id="bmi_restore_tbody" data-empty="<?php esc_attr_e('You have not created any backups yet.', 'backup-backup'); ?>">
                 <tr>
-                  <td colspan="100%"><?php _e('You have not created any backups yet.', 'backup-backup'); ?></td>
+                  <td colspan="100%"><?php esc_html_e('You have not created any backups yet.', 'backup-backup'); ?></td>
                 </tr>
               </tbody>
             </table>
@@ -225,6 +234,7 @@
   <?php require_once 'modals/backup-success-modal.php'; ?>
   <?php require_once 'modals/prenotice-modal.php'; ?>
   <?php require_once 'modals/pre-restore-modal.php'; ?>
+  <?php require_once 'modals/restore-parts-modal.php'; ?>
   <?php require_once 'modals/error-modal.php'; ?>
   <?php require_once 'modals/restore-progress-modal.php'; ?>
   <?php require_once 'modals/restore-success-modal.php'; ?>
@@ -243,6 +253,7 @@
   <?php require_once 'modals/after-logs-sent.php'; ?>
   <?php require_once 'modals/freeze-loading.php'; ?>
   <?php require_once 'modals/logs-modal.php'; ?>
+  <?php require_once 'modals/bb-disconnect-modal.php'; ?>
   <?php //require_once 'modals/logs-sharing-ask.php'; ?>
   <?php require_once 'modals/supportive-restore-success-cont.php'; ?>
   <?php require_once 'modals/supportive-restore-success-modal.php'; ?>

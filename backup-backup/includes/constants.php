@@ -12,8 +12,17 @@
   if (!defined('BMI_AUTHOR_URI')) {
     define('BMI_AUTHOR_URI', 'https://backupbliss.com/');
   }
+  if (!defined('BMI_BB_STORAGE_URI')) {
+    define('BMI_BB_STORAGE_URI', 'https://storage.backupbliss.com/');
+  }
+  if (!defined('BMI_BB_STORAGE_API_URI')) {
+    define('BMI_BB_STORAGE_API_URI', 'https://apistorage.backupbliss.com/');
+  }
   if (!defined('BMI_API_BACKUPBLISS_PUSH')) {
     define('BMI_API_BACKUPBLISS_PUSH', 'api.backupbliss.com');
+  }
+  if (!defined('BMI_SUPPORT_EMAIL')) {
+    define('BMI_SUPPORT_EMAIL', 'support@backupbliss.com');
   }
   if (!defined('BMI_BACKUPS_DEFAULT')) {
     define('BMI_BACKUPS_DEFAULT', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'backup-migration');
@@ -25,7 +34,7 @@
     define('BMI_STATIC_PHP_CONFIG', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'backup-migration-config.php');
   }
   if (!defined('BMI_REV')) {
-    define('BMI_REV', 2);
+    define('BMI_REV', 4);
   }
 
   // Load configuration
@@ -227,4 +236,27 @@
   }
   if (!defined('BMI_CHAT_SUPPORT_URL')) {
     define('BMI_CHAT_SUPPORT_URL', '//code.jivosite.com/widget/qli4YP0snZ');
+  }
+
+  // SINCE 1.4.6
+  if (!defined('BMI_BACKUP_FULL')) {
+    define('BMI_BACKUP_FULL', 'full-backup');
+  }
+  if (!defined('BMI_BACKUP_CORE')) {
+    define('BMI_BACKUP_CORE', 'core-database-backup');
+  }
+  if (!defined('BMI_BACKUP_PLUGIN')) {
+    define('BMI_BACKUP_PLUGIN', 'plugin-backup');
+  }
+  if (!defined('BMI_BACKUP_THEME')) {
+    define('BMI_BACKUP_THEME', 'theme-backup');
+  }
+  if(!defined('BMI_METHOD_CURL')) {
+    define('BMI_METHOD_CURL', 'cURL');
+  }
+  if(!defined('BMI_METHOD_DEFAULT')) {
+    define('BMI_METHOD_DEFAULT', 'default');
+  }
+  if(!defined('BMI_METHOD_BROWSER')) {
+    define('BMI_METHOD_BROWSER', 'browser-method');
   }

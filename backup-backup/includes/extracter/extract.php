@@ -275,10 +275,10 @@
 
         if (file_exists($src)) {
           $fileDest = BMP::fixSlashes($dest);
-          foreach ($preventMoveFiles as $idx => $preventedFile) {
-            if (strpos($src, $preventedFile) === false) {
-              rename($src, $fileDest);
-            }
+          $srcFileName = basename($src);
+
+          if (!in_array($srcFileName, $preventMoveFiles)) {
+            rename($src, $fileDest);
           }
         }
 
@@ -293,6 +293,25 @@
     }
 
     public function removePreviousSelectionsIfDatabaseIncluded() {
+      if (!isset($manifest)) {
+        $manifest = $this->getCurrentManifest();
+      }
+      $restorePartsFile= BMI_TMP . DIRECTORY_SEPARATOR . 'restore_parts.json';
+      $prefix = $manifest->config->table_prefix;
+      if (file_exists($restorePartsFile)) {
+        $restoreParts = json_decode(file_get_contents($restorePartsFile));
+        if (isset($restoreParts->backupName) && $restoreParts->backupName == basename($this->src)) {
+          if (!isset($restoreParts->dirs['db_tables']) &&  !isset($restoreParts->files[$prefix . 'options.sql'])) {
+            return;
+          }
+        }
+      } else {
+        $manager = new ZipManager();
+        $optionsTable = $manager->getZipFileContent($this->src, 'db_tables' . DIRECTORY_SEPARATOR . $prefix . 'options.sql');
+        if ($optionsTable === false) {
+          return;
+        }
+      }
 
       $themedir = get_theme_root();
       $tempTheme = $themedir . DIRECTORY_SEPARATOR . 'backup_migration_restoration_in_progress';
@@ -352,6 +371,8 @@
         update_option('__tastewp_sub_requested', true);
       }
 
+      delete_option('bmi_pro_cron_new_domain_done');
+
       $filesToBeRemoved = [];
       $dir = $this->tmp;
 
@@ -406,8 +427,7 @@
       if (file_exists($tblmap)) {
         @unlink($tblmap);
       }
-
-      $allowedFiles = ['wp-config.php', '.htaccess', '.litespeed', '.default.json', 'driveKeys.php', '.autologin.php', '.migrationFinished'];
+      $allowedFiles = ['wp-config.php', '.htaccess', '.litespeed', '.default.json', 'driveKeys.php', 'dropboxKeys.php', '.autologin.php', '.migrationFinished', 'onedriveKeys.php', 'awsKeys.php', 'wasabiKeys.php', 'backupblissKeys.php', 'sftpKeys.php'];
       foreach (glob(BMI_TMP . DIRECTORY_SEPARATOR . 'backup-migration_??????????') as $filename) {
 
         $basename = basename($filename);
@@ -722,8 +742,8 @@
         global $wpdb;
 
         $loginslug = false;
-        $sql = $wpdb->prepare("SELECT option_value FROM " . $this->dbFoundPrefix . "options WHERE option_name = 'bwpl_slug';");
-        $results = $wpdb->get_results($sql);
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Identifier is safely escaped via escapeSQLIDentifier()
+        $results = $wpdb->get_results("SELECT option_value FROM " . BMP::escapeSQLIDentifier($this->dbFoundPrefix . "options") . " WHERE option_name = 'bwpl_slug';");
 
         if (sizeof($results) > 0) $loginslug = $results[0]->option_value;
 
@@ -1234,41 +1254,79 @@
     }
 
     public function makeNewLoginSession(&$manifest) {
+        global $wpdb;
 
-      wp_load_alloptions(true);
+        $prefix = sanitize_key($manifest->config->table_prefix);
+        // Ensure correct prefix is used before anything
+        $wpdb->set_prefix($manifest->config->table_prefix);
+        wp_load_alloptions(true);
+        $this->migration->log(__('Making new login session', 'backup-backup'), 'STEP');
 
-      $this->migration->log(__('Making new login session', 'backup-backup'), 'STEP');
+        $prefix = $wpdb->prefix;
+        $cap_key = $prefix . 'capabilities';
+        $uid = isset($manifest->uid) ? intval($manifest->uid) : 0;
 
-      if ($manifest->cron === true || $manifest->cron === 'true' || $manifest->uid === 0 || $manifest->uid === '0') {
-        $manifest->uid = 1;
-      }
+        // Check if provided UID is valid
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Identifier is safely escaped via escapeSQLIDentifier()
+        $is_valid_uid = $uid > 0 && $wpdb->get_var(
+            $wpdb->prepare("SELECT ID FROM " . BMP::escapeSQLIDentifier($prefix . "users") . " WHERE ID = %d", $uid)
+        );
 
-      if (is_numeric($manifest->uid)) {
-        $existant = (bool) get_users(['include' => $manifest->uid, 'fields' => 'ID']);
-        if ($existant) {
-          $user = get_user_by('id', $manifest->uid);
-        } else {
-          $existant = (bool) get_users(['include' => 1, 'fields' => 'ID']);
-          if ($existant) {
-            $user = get_user_by('id', 1);
-          }
+        // If no UID, cron mode, or invalid UID, find an administrator manually
+        if (
+            !$is_valid_uid ||
+            $manifest->cron === true ||
+            $manifest->cron === 'true'
+        ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Identifier is safely escaped via escapeSQLIDentifier()
+            $uid = $wpdb->get_var($wpdb->prepare("
+                SELECT u.ID
+                FROM " . BMP::escapeSQLIDentifier($prefix . "users") . " u
+                INNER JOIN " . BMP::escapeSQLIDentifier($prefix . "usermeta") . " um ON u.ID = um.user_id
+                WHERE um.meta_key = %s
+                  AND um.meta_value LIKE %s
+                LIMIT 1
+            ", $cap_key, '%administrator%'));
+
+            // Fallback to first user if no admin found
+            if (!$uid) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Identifier is safely escaped via escapeSQLIDentifier()
+                $uid = $wpdb->get_var("SELECT ID FROM " . BMP::escapeSQLIDentifier($prefix . "users") . " LIMIT 1");
+            }
+
+            $uid = intval($uid);
         }
-      }
 
-      if (isset($user) && is_object($user) && property_exists($user, 'ID')) {
-        remove_all_actions('wp_login', -1000);
-        clean_user_cache(get_current_user_id());
-        clean_user_cache($user->ID);
-        wp_clear_auth_cookie();
-        wp_set_current_user($user->ID, $user->user_login);
-        wp_set_auth_cookie($user->ID, 1, is_ssl());
-        do_action('wp_login', $user->user_login, $user);
-        update_user_caches($user);
-      }
+        // Get user login info from correct (possibly changed) users table
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Identifier is safely escaped via escapeSQLIDentifier()
+        $user = $wpdb->get_row(
+            $wpdb->prepare("SELECT ID, user_login FROM " . BMP::escapeSQLIDentifier($prefix . "users") . " WHERE ID = %d", $uid)
+        );
 
-      $this->migration->log(__('User should be logged in', 'backup-backup'), 'SUCCESS');
+        if ($user && isset($user->ID)) {
+            remove_all_actions('wp_login', -1000);
 
+            clean_user_cache(get_current_user_id());
+            clean_user_cache($user->ID);
+
+            wp_clear_auth_cookie();
+            wp_set_current_user($user->ID, $user->user_login);
+            wp_set_auth_cookie($user->ID, true, is_ssl());
+
+            // Manually trigger wp_login with minimal object
+            $fake_user = (object) [
+                'ID'         => $user->ID,
+                'user_login' => $user->user_login,
+            ];
+            do_action('wp_login', $user->user_login, $fake_user);
+
+            $manifest->uid = $user->ID;
+            $this->migration->log(__('User should be logged in', 'backup-backup'), 'SUCCESS');
+        } else {
+            $this->migration->log(__('User login failed. Could not find user.', 'backup-backup'), 'ERROR');
+        }
     }
+
 
     public function setOrUpdateXhria() {
 
@@ -1337,18 +1395,47 @@
     }
 
     public function backupLocalOptions() {
+      global $wpdb;
+      $bmi_config_options = $wpdb->get_results( "SELECT option_name, option_value FROM $wpdb->options WHERE option_name LIKE '%bmi_%' OR option_name LIKE '%bmip_%' OR option_name LIKE '%bmi_pro_%'" );
+      $tempConfigFile = BMI_TMP . DIRECTORY_SEPARATOR . 'bmi_local_options.json';
+      $options = [];
+      foreach ( $bmi_config_options as $option ) {
+        $options[ $option->option_name ] = maybe_unserialize( $option->option_value );
+      }
+      $content = json_encode( $options );
+      file_put_contents($tempConfigFile, $content);
 
-      $pro_gd_token = get_option('bmi_pro_gd_token', false);
-      $pro_gd_client_id = get_option('bmi_pro_gd_client_id', false);
+    }
 
-      if ($pro_gd_token != false && $pro_gd_client_id != false) {
-        $tempKeyDriveFile = BMI_TMP . DIRECTORY_SEPARATOR . 'driveKeys.php';
-        $content = "<?php \n";
-        $content .= "//" . $pro_gd_token . "\n";
-        $content .= "//" . $pro_gd_client_id . "\n";
-        file_put_contents($tempKeyDriveFile, $content);
+    public function restoreLocalPluginConfiguration() {      
+      $tempConfigFile = BMI_TMP . DIRECTORY_SEPARATOR . 'bmi_local_options.json';
+      
+      if (!file_exists($tempConfigFile) || !is_readable($tempConfigFile)) {
+        return;
       }
 
+      $json_data = file_get_contents($tempConfigFile);
+      $options = json_decode($json_data, true);
+      wp_cache_flush();
+      wp_load_alloptions(true);
+
+      global $wpdb;
+      $bmi_config_options = $wpdb->get_results( "SELECT option_name FROM $wpdb->options WHERE option_name LIKE '%bmi_%' OR option_name LIKE '%bmip_%' OR option_name LIKE '%bmi_pro_%'" );
+      foreach ( $bmi_config_options as $option ) {
+        delete_option( $option->option_name );
+      }
+
+      if (is_array($options)) {
+        foreach ($options as $name => $value) {
+          update_option($name, $value);
+          
+        }
+      }
+
+      wp_cache_flush();
+      wp_load_alloptions(true);
+      
+      unlink($tempConfigFile);
     }
 
     private function makeRestoreSecret() {
@@ -1367,7 +1454,10 @@
       $manager = new ZipManager();
 
       $save = $this->scanFile;
-      $amount = $manager->getZipContentList($this->src, $save);
+      $amount = $manager->getPartsToRestore($this->src, $save);
+      if ($amount === false) {
+        $amount = $manager->getZipContentList($this->src, $save);
+      }
 
       $this->migration->log(__('Scan found ', 'backup-backup') . $amount . __(' files inside the backup.', 'backup-backup'), 'INFO');
 
@@ -2000,6 +2090,9 @@
 
           // Final flush of rewrite rules
           flush_rewrite_rules();
+          
+          // Remove backup migration temporary options
+          $this->restoreLocalPluginConfiguration();
 
           // Dedicated fix for block-wp-login plugin
           $this->fixWPLogin($manifest);

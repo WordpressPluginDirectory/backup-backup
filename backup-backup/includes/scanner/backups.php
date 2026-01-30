@@ -20,7 +20,8 @@
     public function scanBackupDir($path) {
 
       $files = [];
-      foreach (new \DirectoryIterator($path) as $fileInfo) {
+      $dirs = new \DirectoryIterator($path);
+      foreach ($dirs as $fileInfo) {
 
         if ($fileInfo->isDot()) continue;
         if ($fileInfo->isFile()) {
@@ -32,6 +33,17 @@
               'size' => $fileInfo->getSize()
             );
 
+          } else if (strlen($fileInfo->getExtension()) == 6) { // Remove old partial backups e.g. abcdef.zip.g1wdas
+            $extentions = explode('.', $fileInfo->getFilename());
+            if (in_array($extentions[count($extentions) - 2],['zip', 'tar', 'tar.gz', 'gz', 'rar', '7zip', '7z'])) {
+              if (!file_exists(BMI_BACKUPS . DIRECTORY_SEPARATOR . '.running')) {
+                @unlink($path . DIRECTORY_SEPARATOR . $fileInfo->getFilename());
+              }
+            }
+          } else if ($fileInfo->getFilename() == '.space_check') {
+            if (filemtime(BMI_BACKUPS . DIRECTORY_SEPARATOR . '.space_check') < time() - 2 * MINUTE_IN_SECONDS) {
+              @unlink($path . DIRECTORY_SEPARATOR . $fileInfo->getFilename());
+            }
           }
         }
 
@@ -72,6 +84,19 @@
       file_put_contents($md5_file_summary_path, $cacheMd5String);  
     }
 
+    /**
+     * Get Manifest from Zip
+     * @return array|false Array format:
+     * 0 => Backup Name with Zip Name (string)
+     * 1 => Backup Date date in string format (Y-m-d H:i:s)
+     * 2 => Number of Files (int)
+     * 3 => Backup created date in string format (Y-m-d H:i:s)
+     * 4 => Zip Size (int)
+     * 5 => Lock Status (string) 'locked' | 'unlocked'
+     * 6 => Cron Backup (bool)
+     * 7 => MD5 Hash (string)
+     * 8 => Domain (string)
+     */
     public function getManifestFromZip($zip_path, &$zipper) {
 
       if (!file_exists($zip_path)) return false;
@@ -90,8 +115,9 @@
         }
       }
 
-      if (is_string($md5summary)) {
+      if (!is_array($md5summary)) {
         @unlink($md5_file_summary_path);
+        $md5summary = [];
       }
 
       $md5s = [];
@@ -174,7 +200,7 @@
 
     }
 
-    public function getAvailableBackups() {
+    public function getAvailableBackups($scope = "all") {
 
       // Require Universal Zip Library
       require_once BMI_INCLUDES . '/zipper/zipping.php';
@@ -195,18 +221,30 @@
       
       // $start = time();
       // $maxTime = ini_get('max_execution_time');
+      $uploadedBackupStatus = get_option('bmi_uploaded_backups_status', []);
 
       for ($i = 0; $i < sizeof($backups); ++$i) {
         
         // $filestart = time();
         
         $backup = $backups[$i];
-        if (!file_exists($backup['path'])) continue;
         $path = $backup['path'] . '/' . $backup['filename'];
+        if ( file_exists( BMI_BACKUPS . '/.running' ) && !empty( glob( $path . '.?*' ) ) ) continue;
+        if (!file_exists($backup['path'])) continue;
         
         $manifest = $this->getManifestFromZip($path, $zipper);
-        if ($manifest) $manifests[$backup['filename']] = $manifest;
-        else @unlink($path);
+        if ($manifest) {
+          $md5 = $manifest[7];
+          if (isset($uploadedBackupStatus[$md5])) {
+            $manifest[] = $uploadedBackupStatus[$md5];
+          } else {
+            $manifest[] = [];
+          }
+          $manifests[$backup['filename']] = $manifest;
+        }
+        else{
+          if (!file_exists(BMI_BACKUPS . '/.running')) @unlink($path); // Prevents deletion of running backups
+        }
         
         // $fileend = $filestart - time();
         // $totalTime = $start - time();
@@ -215,14 +253,13 @@
         
       }
 
-      if (defined('BMI_BACKUP_PRO') && defined('BMI_PRO_INC')) {
-        $proPath = BMI_PRO_INC . 'external/controller.php';
-        if (file_exists($proPath)) {
-          require_once $proPath;
-          $externalStorage = new ExternalStorage();
-          $external = $externalStorage->getExternalBackups();
-        }
+      if ($scope == "local") {
+        return [ 'local' => $manifests ];
       }
+      
+      require_once BMI_INCLUDES . '/external/controller.php';
+      $externalStorage = new ExternalStorage();
+      $external = $externalStorage->getExternalBackups();
       
       $this->removeOldCache();
 

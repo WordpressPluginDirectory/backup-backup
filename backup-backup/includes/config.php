@@ -86,7 +86,7 @@
         if (!(json_last_error() == JSON_ERROR_NONE)) {
 
           // Setting refill base
-          $bmi_config_json = json_decode(json_encode(array()));
+          $bmi_config_json = (object)[];
 
         }
 
@@ -97,7 +97,11 @@
         if (isset($value) && (!is_string($value) || (in_array($setting, $allow_empty) || strlen(trim($value)) > 0))) {
 
           // Set new setting
-          @$bmi_config_json->{$setting} = $value;
+          if (is_array($bmi_config_json)) {
+            $bmi_config_json[$setting] = $value;
+          } else if (is_object($bmi_config_json)) {
+            $bmi_config_json->{$setting} = $value;
+          } else return false;
 
         } else return false;
 
@@ -124,12 +128,12 @@
 
         if (bmi_get_config($setting) == 'true' || bmi_get_config($setting) === true) {
           echo ' checked';
-        } else return false;
+        } else return '';
 
       } else {
 
         if (bmi_get_config($setting) == 'true' || bmi_get_config($setting) === true) {
-          return false;
+          return '';
         } else {
           echo ' checked';
         }
@@ -144,7 +148,7 @@
 
       $res = bmi_get_config($setting);
       if ($res !== false) {
-        echo ' value="' . sanitize_text_field($res) . '"';
+        echo ' value="' . esc_attr( sanitize_text_field($res) ) . '"';
       } else echo '';
 
     }

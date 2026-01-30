@@ -52,14 +52,14 @@
     <div class="bmi-modal-content center">
 
       <div class="mm60 f30 bold black mb flex flexcenter">
-        <img src="<?php echo $this->get_asset('images', 'red-cross.svg'); ?>" alt="red-cross" width="78px">
+        <img src="<?php echo esc_url( $this->get_asset('images', 'red-cross.svg') ); ?>" alt="red-cross" width="78px">
         <span class="modal-title"></span>
       </div>
 
       <div class="failure-options-container">
         <div class="cf lh30">
           <div class="left mm30 f20" style="margin-bottom:20px">
-            <?php _e("However, no reason to despair! Your option(s):","backup-backup"); ?>
+            <?php esc_html_e("However, no reason to despair! Your option(s):","backup-backup"); ?>
           </div>
         </div>
           <!-- OPTION 1: Try it in a different way -->
@@ -67,56 +67,33 @@
             <div class="header f20 pointer transition flex bold">
               <span class="right-arrow"></span>
               <span class="option-title">
-              <?php _e('Try it in a different way','backup-backup'); ?>
+              <?php esc_html_e('Try it in a different way','backup-backup'); ?>
               </span>
             </div>
             <div class="content save-action f18 flex mm30 pbl" >
-                <?php _e('The plugin also offers an alternative method. It might be a bit slower, but it’s worth trying.', 'backup-backup');?>
-              <a class="try-in-different-way mtll btn"><?php echo __('Yes sure, please try!','backup-backup');?></a>
+                <?php esc_html_e('The plugin also offers an alternative method. It might be a bit slower, but it\'s worth trying.', 'backup-backup');?>
+              <a class="try-in-different-way mtll btn"><?php echo esc_html(__('Yes sure, please try!','backup-backup')); ?></a>
             </div>
           </div>
 
           <!-- OPTION 2: Debug it yourself -->
-          <div class="collapser failure-option shadow" group="failure-option">
+          <div class="collapser failure-option shadow debug-it-yourself" group="failure-option">
             <div class="header f20 pointer transition flex bold">
               <span class="right-arrow"></span>
               <span class="option-title">
-              <?php _e('Debug it yourself','backup-backup'); ?>
+              <?php esc_html_e('Debug it yourself','backup-backup'); ?>
               </span>
             </div>
             <div class="content save-action f18 flex mm30 pbl" >
-              <span class="there-are-reasons"><?php _e('Based on what we observed, the issue could be one of those:','backup-backup');?></span>
+              <span class="there-are-reasons"><?php esc_html_e('Based on what we observed, the issue could be one of those:','backup-backup');?></span>
+              <span class="there-is-a-reason"><?php esc_html_e('Based on what we observed, the issue could be:','backup-backup');?></span>
               <?php if (current_user_can('manage_options') && current_user_can('administrator')): ?>
                 <ul class="failure-reasons">
                 </ul>
                 <?php endif; ?>
-                <!-- Disk space checking -->
-                <div class="space-checking">
-                  <?php echo $diskSpaceCheckStatment ?>
-                  <div class="loading hide_verbose"> 
-                    <div class="spinner-loader"></div>
-                    <span><?php _e('Checking','backup-backup');?></span>
-                  </div>
-                  <div class="checking-result">
-                    <div class="failed hide_verbose">
-                      <span class="failure-icon">×</span>
-                      <span><?php _e('Failed to check disk space, ','backup-backup');?></span>
-                      <span><?php _e("We couldn't check available disk space, there may not be enough space for the backup, please double check.",'backup-backup');?></span>
-                    </div>
-                    <div class="not-enough-space hide_verbose">
-                      <span class="failure-icon"></span>
-                      <span><?php _e('The minimum required disk space is ','backup-backup'); ?><span class="required-space"></span><?php _e(' , while the available disk space is ','backup-backup'); ?><span class="available-space"></span></span>
-                    </div>
-                    <div class="enough-space hide_verbose">
-                      <span class="success-icon"></span>
-                      <span><?php _e('There is enough disk space on your server.','backup-backup');?></span>
-                    </div>
-                  </div>
-                </div>
-                <!-- End of space checking -->
-              <?php echo $debugSectionStatment ?>
-              <span class="there-are-reasons"><?php _e(' If not:','backup-backup'); ?></span>
-              <span class="there-are-no-reasons"><br><br><?php _e('If you still struggle, feel free to contact us, we will help!','backup-backup'); ?></span>
+              <?php echo wp_kses_post( $debugSectionStatment ); ?>
+              <span class="there-are-reasons"><?php esc_html_e(' If not:','backup-backup'); ?></span>
+              <span class="there-are-no-reasons"><br><br><?php esc_html_e('If you still struggle, feel free to contact us, we will help!','backup-backup'); ?></span>
             </div>
           </div>
 
@@ -125,14 +102,14 @@
             <div class="header f20 pointer transition flex bold">
               <span class="right-arrow"></span>
               <span class="option-title">
-              <?php _e('Ask us!','backup-backup'); ?>
+              <?php esc_html_e('Ask us!','backup-backup'); ?>
               </span>
               <span class="its-free"></span>
             </div>
             <div class="content save-action f18 flex mm30 pbl" >
-                <?php _e('We’re happy to look into it for you! Please click on the button below to send us the required debug infos:','backup-backup');?>
-                <a class="btn center bmi-send-troubleshooting-logs" href="#" ><?php _e('Share debug infos with BackupBliss team', 'backup-backup');?></a>
-                <span class="f16"><?php echo $sharingLogStatment ?></span>
+                <?php esc_html_e('We\'re happy to look into it for you! Please click on the button below to send us the required debug infos:','backup-backup');?>
+                <a class="btn center bmi-send-troubleshooting-logs" href="#" ><?php esc_html_e('Share debug infos with BackupBliss team', 'backup-backup');?></a>
+                <span class="f16"><?php echo wp_kses_post( $sharingLogStatment ); ?></span>
             </div>
           </div>
       </div>
