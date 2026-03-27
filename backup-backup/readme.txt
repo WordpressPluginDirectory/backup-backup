@@ -1,13 +1,13 @@
-=== Backup Migration ===
+=== Backup ===
 Contributors: Migrate
 Tags: Migration, Backup, Staging, Migrate, Backups
 Requires at least: 4.6
-Tested up to: 6.9
-Stable tag: 2.1.0
+Tested up to: 6.9.4
+Stable tag: 2.1.3
 License: GPLv3
 Requires PHP: 5.6
 
-Backup Migration
+Backup
 
 == Description ==
 
@@ -16,7 +16,7 @@ Backup Migration
 - 🪶 **Lightweight** – just over 1MB  
 - ⚡ **Super-quick migration** with only a few clicks  
 - 🎯 **Incredibly easy to use** – no tech skills required  
-- ☁️ **Many free storage options**: Google Drive, Dropbox, OneDrive, Amazon S3 & more  
+- ☁️ **Many free storage options**: Google Drive, Dropbox, OneDrive, pCloud, Amazon S3 & more  
 - 🔒 **Exclusive own storage solution** with **1GB of free space** – unique on the market!  
 
 👉 **[Try it out instantly on a live demo](https://demo.tastewp.com/bmi)**
@@ -29,7 +29,7 @@ Simply install the plugin, click on "Create backup now" - done.
 
 Website migration is just as easy and FREE, with just two clicks!
 
-Wide range of available cloud storage locations: Google Drive, Dropbox, OneDrive, Amazon S3, Wasabi, SFTP & FTP, and free cloud storage BackupBliss.
+Wide range of available cloud storage locations: Google Drive, Dropbox, OneDrive, Amazon S3, Wasabi, pCloud, SFTP & FTP, and free cloud storage BackupBliss.
 
 You can also schedule backups, e.g. define that a backup should be taken automatically every week (or every day/month).
 
@@ -64,7 +64,7 @@ You can download or migrate your backup (use the plugin as a WordPress duplicato
 
 - If your backup is **located on another device**: Go to the BackupBliss - Backup Migration Staging plugin screen, then to the Manage & Restore Backup(s) tab, and click on the “Upload backup files” button. After the upload, click on the Restore button next to the backup you would like to restore.
 
-- If your backup is **located on Google Drive, OneDrive, Dropbox, Amazon S3, Wasabi, BackupBliss Storage, FTP or SFTP**: Go to the BackupBliss - Backup Migration Staging plugin screen, then to the plugin section “Where shall the backup(s) be stored?”, turn ON the respective external storage option, and connect to your account. After that, the plugin will sync the available backup files in the plugin section “Manage & Restore Backups” from where you will be able to run Restore.
+- If your backup is **located on Google Drive, OneDrive, Dropbox, Amazon S3, Wasabi, BackupBliss Storage, pCloud, FTP or SFTP**: Go to the BackupBliss - Backup Migration Staging plugin screen, then to the plugin section “Where shall the backup(s) be stored?”, turn ON the respective external storage option, and connect to your account. After that, the plugin will sync the available backup files in the plugin section “Manage & Restore Backups” from where you will be able to run Restore.
 
 = How do I migrate or clone my site? =
 
@@ -74,11 +74,11 @@ Migrate (or clone) a WordPress site by creating a full backup on the site that y
 
 - To migrate the website **indirectly**: Go to the BackupBliss - Backup Migration Staging plugin screen, then to the Manage & Restore Backup(s) tab, and click on the “Upload backup files” button. After the upload, click on the Restore button next to the backup you would like to restore.
 
-- To migrate the website with **Google Drive, OneDrive, Dropbox, Amazon S3, Wasabi, BackupBliss Storage, FTP or SFTP**: Go to the BackupBliss - Backup Migration Staging plugin screen, then to the plugin section “Where shall the backup(s) be stored?”, turn ON the respective external storage option, and connect to your account. After that, the plugin will sync the available backup files in the plugin section “Manage & Restore Backups” from where you will be able to run Restore.
+- To migrate the website with **Google Drive, OneDrive, Dropbox, Amazon S3, Wasabi, BackupBliss Storage, pCloud, FTP or SFTP**: Go to the BackupBliss - Backup Migration Staging plugin screen, then to the plugin section “Where shall the backup(s) be stored?”, turn ON the respective external storage option, and connect to your account. After that, the plugin will sync the available backup files in the plugin section “Manage & Restore Backups” from where you will be able to run Restore.
 
 = Where can I find my backups? =
 
-BackupBliss - Backup Migration Staging allows you to download backups, migrate backups, or delete backups directly from the plugin screen Manage & Restore Backup(s). By default, the migrator plugin will store backups locally on the server to /wordpress/wp-content/backup-migration but you can change the backup location to anywhere you please. If you have backups stored on the cloud - OneDrive, Dropbox, Google Drive, BackupBliss Storage, Amazon S3, Wasabi, FTP or SFTP, you will need to connect the plugin with the respective storage account, so that the plugin can synchronize the data.
+BackupBliss - Backup Migration Staging allows you to download backups, migrate backups, or delete backups directly from the plugin screen Manage & Restore Backup(s). By default, the migrator plugin will store backups locally on the server to /wordpress/wp-content/backup-migration but you can change the backup location to anywhere you please. If you have backups stored on the cloud - OneDrive, Dropbox, Google Drive, BackupBliss Storage, Amazon S3, Wasabi, pCloud, FTP or SFTP, you will need to connect the plugin with the respective storage account, so that the plugin can synchronize the data.
 
 = How to run automatic backups? =
 
@@ -102,10 +102,10 @@ You can easily set up a staging environment for your website with the BackupBlis
 
 = ⭐️ NEW! Is cloud backup available? =
 
-Backup to Google Drive, OneDrive, FTP, Amazon S3, Wasabi, BackupBliss Storage, SFTP and Dropbox are now available in the [BackupBliss - Backup Migration Staging Pro](https://sellcodes.com/w5c5TmCC)
+Backup to Google Drive, OneDrive, FTP, Amazon S3, Wasabi, BackupBliss Storage, SFTP, pCloud and Dropbox are now available in the [BackupBliss - Backup Migration Staging Pro](https://sellcodes.com/w5c5TmCC)
 Upcoming storage options will include: Rackspace, DreamObjects, OpenStack, Google Cloud, Microsoft Azure, Backblaze, and more - vote for your favorite [here](https://rateitall.com/list/backupbliss-feature-pipeline).
 
-= ⭐️ NEW! How do I back up to Google Drive / OneDrive / BackupBliss Storage / Dropbox / FTP / SFTP / Amazon S3/ Wasabi ? =
+= ⭐️ NEW! How do I back up to Google Drive / OneDrive / BackupBliss Storage / Dropbox / pCloud / FTP / SFTP / Amazon S3/ Wasabi ? =
 
 In order to automatically upload your site backups to the Cloud, you will need a [Pro version](https://sellcodes.com/w5c5TmCC) of the plugin. Once installed and activated, navigate to the plugin section “Where shall the backup(s) be stored?”, and turn ON the respective external storage feature. Click on the button Connect, and select the account you want to connect to. Once it is connected, your backup files from the website will start to sync to your connected storage. You can monitor the process in the plugin section “Manage & Restore Backups”
 
@@ -177,6 +177,43 @@ Vietnamese: [Tạo sao lưu, khôi phục các bản sao lưu và di chuyển c�
 5. The plugin should be shown below the settings menu.
 
 == Changelog ==
+= 2.1.3 =
+
+* [FEATURE] Enhanced backup banner with improved initialization logic, positioning, and transition effects.  
+* [FEATURE] Added delayed banner display after 5 minutes of initialization.  
+* [FEATURE] Implemented dynamic arrow positioning updates on DOM mutations for the banner.  
+* [FEATURE] Added menu item checks for accurate banner positioning and behavior.  
+* [FEATURE] Limited banner overlay to admin items only when triggered.  
+* [FEATURE] Enabled new database export engine option in settings.
+* [FIX] Preserved POST `f` value during AJAX handler initialization.  
+* [FIX] Ensured menu item is correctly referenced when hiding the banner.
+
+= 2.1.2 =
+
+* Tested with WordPress 6.9.4
+* [FEATURE] Implemented new database export engine with support for unbuffered queries.  
+* [FEATURE] Added dual storage backend with file-based fallback for improved reliability.  
+* [FEATURE] Added backup banner with dismiss functionality and updated assets.  
+* [FEATURE] Introduced log file suffix configuration for improved log management.  
+* [ENHANCEMENT] Increased default search/replace limits and enabled new search/replace engine.  
+* [ENHANCEMENT] Enhanced fetchRows method to support unbuffered queries for better performance.  
+* [ENHANCEMENT] Improved banner responsiveness, text wrapping, and installation link handling.  
+* [ENHANCEMENT] Improved responsive design of feature cards and dashboard banners.  
+* [ENHANCEMENT] Simplified restore success modal logic for better user feedback.  
+* [ENHANCEMENT] Streamlined exclusion logic and error handling in database export process.  
+* [FIX] Prevented frequent cron job execution for improved stability.  
+* [REFACTOR] Kept legacy database engine as primary while introducing new engine as alternative.  
+* [REFACTOR] Simplified banner dismiss logic and improved redirect behavior.  
+* [REFACTOR] Removed unnecessary database prepare calls.  
+* [DOCS] Added warning about unbuffered query behavior in database export documentation.  
+* [MISC] Various internal improvements, optimizations, and minor fixes across the plugin.
+
+= 2.1.1 =
+
+* Tested with WordPress 6.9.1
+* [ENHANCEMENT] Optimized restore log retrieval to reduce unnecessary HTTP requests and improve performance.
+* [STYLE] Improved modal UI with refined button and container padding, font sizes, and color adjustments for better visual consistency.
+
 = 2.1.0 =
 
 * Tested with WordPress 6.9
@@ -200,39 +237,6 @@ Vietnamese: [Tạo sao lưu, khôi phục các bản sao lưu và di chuyển c�
 * [ENHANCEMENT] Improved backup and restore log handling using bmi-id for consistency and compatibility.  
 * [ENHANCEMENT] Improved backup locking and race condition handling to prevent overlapping operations.  
 * [ENHANCEMENT] Improved tooltip messaging and visual feedback for backup completion and storage icons.  
-* [ENHANCEMENT] Enhanced banner responsiveness and layout across different screen sizes.  
-* [FIX] Prevented direct access to PHP files by adding missing access checks.  
-* [FIX] Corrected backup deletion logic to only remove external backups created on the same site.  
-* [FIX] Fixed backup URL and migration parameters to consistently use bmi-id instead of backup-id.  
-* [FIX] Improved ZIP archive detection with fallback validation checks.  
-* [FIX] Prevented backup scans from running while a backup is already in progress.  
-* [FIX] Allowed spaces in backup directory names during validation.  
-* [FIX] Fixed FTP connection handling by checking function availability before use.  
-* [FIX] Resolved issues with backup path validation before running backup status checks.  
-* [FIX] Prevented review banners from showing on unsupported admin pages.  
-* [FIX] Improved JSON content type validation for offline verification requests.  
-* [FIX] Updated Google Drive and FTP connection handling in offline AJAX flows.  
-* [STYLE] Improved tooltip handling for disabled buttons and refined modal layouts.  
-* [STYLE] Updated banner layouts, max-width handling, and responsive behavior.  
-* [REFACTOR] Removed unnecessary SQL prepare calls and cleaned up database interaction logic.  
-* [REFACTOR] Improved restore and extract logic to use JSON-based configuration handling.  
-* [REFACTOR] Streamlined AJAX action handling to better support cron triggers.  
-* [REFACTOR] Removed unused minification and build dependencies.
-* [MISC] Various internal cleanups, security hardening, and performance improvements across the plugin.
-
-= 2.0.0 =
-
-* Tested with WordPress 6.8.3
-* [FEATURE] Introduced Google Drive, Dropbox, FTP, Amazon S3 and Wasabi as FREE storage options migrated from the premium version.  
-* [FEATURE] Added manual upload functionality for backups.  
-* [FEATURE] Added file filtering settings with improved UI instructions for exclusions.  
-* [FEATURE] Implemented backup verification with scheduled events for enhanced reliability.  
-* [FEATURE] Added dynamic adjustment of storage icons and layout for better visual consistency.  
-* [FEATURE] Enabled file path filtering in backup settings.  
-* [FEATURE] Added whitelist configuration for the Security Ninja plugin.  
-* [FEATURE] Added browse-details-wrapper class for improved layout in backup details.  
-* [FEATURE] Added review link opening in new tab on button click for better UX.  
-* [FEATURE] Hide review prompt once user has interacted with it.  
 * [... and more ...]
 
 = previous =
@@ -240,46 +244,14 @@ Old changelog has been removed due to WordPress limitation of 5000 characters.
 
 == Upgrade Notice ==
 
-= 2.1.0 =
-What's new in 2.1.0?
+= 2.1.3 =
+What's new in 2.1.3?
 
-* Tested with WordPress 6.9
-* [FEATURE] Introduced restoration of local plugin configuration after migration to preserve site-specific settings.  
-* [FEATURE] Added resync functionality with ping server for improved offline and recovery scenarios.  
-* [FEATURE] Implemented authentication handshake for offline M2M connections.  
-* [FEATURE] Added extension and environment checks for S3, Wasabi, FTP, and cURL based storage integrations.  
-* [FEATURE] Added space requirement checks before showing upload issue notices.  
-* [FEATURE] Implemented wake lock request and release functionality to prevent interruptions during long operations.  
-* [FEATURE] Implemented backup search functionality with input handling.  
-* [FEATURE] Added plugin auto-update notice and update check functionality.  
-* [FEATURE] Added restore log filling logic to improve restore feedback and avoid false error responses.  
-* [FEATURE] Implemented a new database search and replace engine with progress tracking.
-* [FEATURE] Added affordable premium banner card with SVG icon.  
-* [ENHANCEMENT] Improved error handling and response validation across jQuery, AJAX, and offline endpoints.  
-* [ENHANCEMENT] Improved security by sanitizing output in templates and notices using proper WordPress escaping functions.  
-* [ENHANCEMENT] Improved database query handling and resolved PluginCheck and PHPCS security warnings.  
-* [ENHANCEMENT] Updated cron API endpoint to v2 for improved reliability.  
-* [ENHANCEMENT] Improved log message clarity and documentation for backup manifest handling.  
-* [ENHANCEMENT] Streamlined connection verification methods for Google Drive, FTP, and BackupBliss.  
-* [ENHANCEMENT] Improved backup and restore log handling using bmi-id for consistency and compatibility.  
-* [ENHANCEMENT] Improved backup locking and race condition handling to prevent overlapping operations.  
-* [ENHANCEMENT] Improved tooltip messaging and visual feedback for backup completion and storage icons.  
-* [ENHANCEMENT] Enhanced banner responsiveness and layout across different screen sizes.  
-* [FIX] Prevented direct access to PHP files by adding missing access checks.  
-* [FIX] Corrected backup deletion logic to only remove external backups created on the same site.  
-* [FIX] Fixed backup URL and migration parameters to consistently use bmi-id instead of backup-id.  
-* [FIX] Improved ZIP archive detection with fallback validation checks.  
-* [FIX] Prevented backup scans from running while a backup is already in progress.  
-* [FIX] Allowed spaces in backup directory names during validation.  
-* [FIX] Fixed FTP connection handling by checking function availability before use.  
-* [FIX] Resolved issues with backup path validation before running backup status checks.  
-* [FIX] Prevented review banners from showing on unsupported admin pages.  
-* [FIX] Improved JSON content type validation for offline verification requests.  
-* [FIX] Updated Google Drive and FTP connection handling in offline AJAX flows.  
-* [STYLE] Improved tooltip handling for disabled buttons and refined modal layouts.  
-* [STYLE] Updated banner layouts, max-width handling, and responsive behavior.  
-* [REFACTOR] Removed unnecessary SQL prepare calls and cleaned up database interaction logic.  
-* [REFACTOR] Improved restore and extract logic to use JSON-based configuration handling.  
-* [REFACTOR] Streamlined AJAX action handling to better support cron triggers.  
-* [REFACTOR] Removed unused minification and build dependencies.
-* [MISC] Various internal cleanups, security hardening, and performance improvements across the plugin.
+* [FEATURE] Enhanced backup banner with improved initialization logic, positioning, and transition effects.  
+* [FEATURE] Added delayed banner display after 5 minutes of initialization.  
+* [FEATURE] Implemented dynamic arrow positioning updates on DOM mutations for the banner.  
+* [FEATURE] Added menu item checks for accurate banner positioning and behavior.  
+* [FEATURE] Limited banner overlay to admin items only when triggered.  
+* [FEATURE] Enabled new database export engine option in settings.
+* [FIX] Preserved POST `f` value during AJAX handler initialization.  
+* [FIX] Ensured menu item is correctly referenced when hiding the banner.
